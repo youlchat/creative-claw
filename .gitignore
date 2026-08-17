@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Runtime data and secrets
+.creative-claw/
+data/
+*.db
+*.db-shm
+*.db-wal
+.env
+
+# Generated Office files and visual QA output
+demo-output/
+~$*.docx
+~$*.pptx
+~$*.xlsx
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

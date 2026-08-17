@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creative Claw · 叙事画布</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <div class="app" id="creativeClaw">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">C</div>
+        <div>
+          <strong>Creative Claw</strong>
+          <span>叙事工作台</span>
+        </div>
+      </div>
+      <div class="project-switcher">
+        <label for="projectSelect">项目</label>
+        <select id="projectSelect" aria-label="选择项目"></select>
+        <span class="branch-pill">main</span>
+        <button class="text-button" id="newProjectButton" type="button">＋ 新建</button>
+        <button class="text-button" id="renameProjectButton" type="button">重命名</button>
+      </div>
+      <div class="top-actions">
+        <button class="model-status" id="modelStatus" type="button" aria-label="配置模型"><i></i><span>正在连接</span></button>
+        <input type="file" id="fileUpload" hidden accept=".txt,.md,.json,.html,.pdf,.docx,.pptx,.xlsx,.csv,.tsv">
+        <button class="btn secondary" id="uploadButton" type="button">导入资料</button>
+        <button class="btn secondary" id="blueprintLabButton" type="button">蓝图实验室</button>
+        <button class="btn primary" id="newSceneButton" type="button">＋ 新场景</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="left-panel" aria-label="知识库">
+        <div class="panel-title-row">
+          <div><span class="eyebrow">KNOWLEDGE</span><h1>项目知识库</h1></div>
+          <span class="count-badge" id="documentCount">0</span>
+        </div>
+        <form class="search-box" id="searchForm">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
+          <input id="knowledgeQuery" autocomplete="off" placeholder="搜索设定、人物、场景…" aria-label="搜索知识库">
+          <button class="search-submit" type="submit" aria-label="执行搜索">↵</button>
+        </form>
+        <div class="stat-strip" aria-label="知识库统计">
+          <div><b id="chunkCount">—</b><span>引用块</span></div>
+          <div><b id="entityCount">—</b><span>实体</span></div>
+          <div><b id="ledgerCount">—</b><span>账本</span></div>
+        </div>
+
+        <section class="side-section">
+          <div class="section-heading"><span>资料</span><button class="text-button" id="refreshButton" type="button">刷新</button></div>
+          <div class="document-list" id="documentList"></div>
+        </section>
+        <section class="side-section entities-section">
+          <div class="section-heading"><span>人物与事实</span><span class="section-actions"><span id="entitySummary">0 项</span><button class="text-button" id="addEntityButton" type="button">＋ 添加</button></span></div>
+          <div class="entity-list" id="entityList"></div>
+        </section>
+      </aside>
+
+      <section class="canvas-column" aria-label="叙事画布">
+        <div class="canvas-toolbar">
+          <div class="toolbar-group canvas-create-actions" aria-label="在画布创建">
+            <button class="tool-button create-tool" id="canvasNewScene" type="button">＋ 场景</button>
+            <button class="tool-button create-tool" id="canvasNewEntity" type="button">＋ 实体</button>
+            <button class="tool-button create-tool" id="canvasNewSource" type="button">＋ 来源</button>
+            <span class="toolbar-divider" aria-hidden="true"></span>
+            <button class="tool-button active" type="button" data-mode="select" aria-pressed="true">选择</button>
+            <button class="tool-button" type="button" data-mode="pan" aria-pressed="false">抓手</button>
+          </div>
+          <div class="canvas-title"><strong>故事结构画布</strong><span id="canvasMeta">正在载入结构…</span></div>
+          <div class="toolbar-group zoom-controls">
+            <button class="icon-button" id="zoomOut" type="button" aria-label="缩小">−</button>
+            <span id="zoomLabel">100%</span>
+            <button class="icon-button" id="zoomIn" type="button" aria-label="放大">＋</button>
+            <button class="tool-button" id="resetView" type="button">适应画布</button>
+          </div>
+        </div>
+        <div class="canvas-viewport" id="canvasViewport">
+          <div class="canvas-world" id="canvasWorld">
+            <svg class="edge-layer" id="edgeLayer" width="1600" height="1100" aria-label="节点关系连线"></svg>
+            <div class="node-layer" id="nodeLayer"></div>
+            <section class="canvas-board manuscript-board" id="manuscriptBoard" data-board-id="board:manuscript" aria-labelledby="manuscriptTitle">
+              <header class="canvas-board-head manuscript-board-head" data-board-handle>
+                <div>
+                  <span class="board-kicker">MANUSCRIPT</span>
+                  <h2 id="manuscriptTitle">场景正文</h2>
+                  <div class="manuscript-meta"><span id="manuscriptLocator">—</span><span id="manuscriptCount">0 字</span><span id="manuscriptState">已同步</span></div>
+                </div>
+                <label class="manuscript-scene-picker">当前场景<select id="manuscriptSceneSelect" aria-label="选择正文场景"></select></label>
+              </header>
+              <div class="canvas-board-body manuscript-body">
+                <div class="project-start" id="projectStart" hidden>
+                  <span class="board-kicker">START WRITING</span>
+                  <strong>这个项目还没有正文</strong>
+                  <p>先建立一个场景，正文编辑、局部改写、人物 K 线和账本才有承载位置。</p>
+                  <div class="project-start-actions">
+                    <button class="btn primary" id="startFirstScene" type="button">＋ 创建第一个场景</button>
+                    <button class="btn secondary" id="startEntity" type="button">添加人物或事实</button>
+                    <button class="btn secondary" id="startImport" type="button">导入设定资料</button>
+                  </div>
+                </div>
+                <textarea id="manuscriptText" aria-label="场景正文编辑器" spellcheck="false" placeholder="选择一个场景开始写作"></textarea>
+                <div class="selection-toolbar" id="selectionToolbar" hidden>
+                  <div class="selection-summary"><strong id="selectionCount">已选 0 字符</strong><span id="selectionPreview"></span></div>
+                  <div class="selection-command">
+                    <input id="selectionInstruction" aria-label="选区修改要求" placeholder="例如：语气更克制，但保留事实">
+                    <button class="btn secondary" id="manualSelectionPatch" type="button">手工补丁</button>
+                    <button class="btn primary" id="runSelectionRewrite" type="button">AI 改写选区</button>
+                  </div>
+                </div>
+                <section class="selection-review" id="selectionReview" aria-label="选区补丁预览" hidden>
+                  <header><div><span class="board-kicker">SELECTION PATCH</span><strong>只替换选区</strong></div><span id="selectionPatchMeta"></span></header>
+                  <div class="selection-diff">
+                    <label>原文<pre id="selectionOriginal"></pre></label>
+                    <label>替换为<textarea id="selectionReplacement" aria-label="选区替换文本"></textarea></label>
+                  </div>
+                  <footer><span id="selectionEvidence">未调用模型</span><span><button class="btn secondary" id="cancelSelectionPatch" type="button">取消</button><button class="btn primary" id="applySelectionPatch" type="button">应用局部补丁</button></span></footer>
+                </section>
+                <footer class="manuscript-footer">
+                  <span>选中文本或把光标放进一段；局部补丁与修改前后全文都会进入账本</span>
+                  <span class="manuscript-actions"><button class="btn secondary" id="selectParagraph" type="button">选中当前段</button><button class="btn secondary" id="revertManuscript" type="button" disabled>还原</button><button class="btn primary" id="saveManuscript" type="button" disabled>提交正文修改</button></span>
+                </footer>
+              </div>
+            </section>
+            <section class="canvas-board kline-board" id="klineBoard" data-board-id="board:kline" aria-labelledby="klineBoardTitle">
+              <header class="canvas-board-head" data-board-handle>
+                <div><span class="board-kicker">CHARACTER STATE</span><h2 id="klineBoardTitle">人物 K 线 · 知情度</h2></div>
+                <span class="section-actions"><span>0–100</span><button class="text-button" id="addOhlcButton" type="button">＋ 周期</button></span>
+              </header>
+              <div class="canvas-board-body">
+                <svg id="klineChart" class="kline-chart" viewBox="0 0 410 210" role="img" aria-label="沈霜知情度 OHLC 图"></svg>
+                <div class="ohlc-editor" id="ohlcEditor" hidden>
+                  <div class="ohlc-period"><strong id="ohlcPeriod">—</strong><span id="ohlcSceneLink">关联场景：—</span></div>
+                  <div class="ohlc-inputs">
+                    <label>开<input type="number" min="0" max="100" data-ohlc="open"></label>
+                    <label>高<input type="number" min="0" max="100" data-ohlc="high"></label>
+                    <label>低<input type="number" min="0" max="100" data-ohlc="low"></label>
+                    <label>收<input type="number" min="0" max="100" data-ohlc="close"></label>
+                  </div>
+                  <button class="btn secondary full" id="saveOhlc" type="button">提交 K 线修改</button>
+                </div>
+              </div>
+            </section>
+            <section class="canvas-board ledger-board" id="ledgerBoard" data-board-id="board:ledger" aria-labelledby="ledgerBoardTitle">
+              <header class="canvas-board-head" data-board-handle>
+                <div><span class="board-kicker">APPEND-ONLY HISTORY</span><h2 id="ledgerBoardTitle">叙事连续性账本</h2></div>
+                <button class="text-button" id="refreshLedgerButton" type="button">刷新</button>
+              </header>
+              <div class="canvas-board-body">
+                <div class="ledger-summary">
+                  <div><span>哈希链</span><strong id="ledgerValidity">校验中</strong></div>
+                  <div><span>事件</span><strong id="ledgerEventCount">—</strong></div>
+                  <div><span>HEAD</span><code id="ledgerHead">—</code></div>
+                </div>
+                <section class="ledger-text-version" id="ledgerTextVersion" aria-live="polite">
+                  <header>
+                    <div><span class="board-kicker">SCENE TEXT VERSION</span><strong id="ledgerTextTitle">选择一个场景</strong><small id="ledgerTextLocator">正文版本会在这里展开</small></div>
+                    <code id="ledgerTextVersionMeta">—</code>
+                  </header>
+                  <pre id="ledgerTextCurrent">选择场景节点后查看当前完整正文。</pre>
+                  <details id="ledgerTextHistory" hidden>
+                    <summary>查看上一版全文与本次补丁</summary>
+                    <pre id="ledgerTextPrevious"></pre>
+                    <div class="ledger-patches" id="ledgerTextPatches"></div>
+                  </details>
+                </section>
+                <div class="ledger-event-heading"><span>审计事件链</span><small>每次写入的哈希记录</small></div>
+                <div class="ledger-events" id="ledgerEvents" aria-live="polite"></div>
+              </div>
+            </section>
+          </div>
+          <div class="canvas-legend" aria-label="节点类型图例">
+            <span><i class="legend-dot character"></i>人物/事实</span>
+            <span><i class="legend-dot scene"></i>场景</span>
+            <span><i class="legend-dot source"></i>来源</span>
+          </div>
+          <div class="selection-hint" id="selectionHint">拖动节点重排 · 点击节点查看证据</div>
+        </div>
+      </section>
+
+      <aside class="right-panel" aria-label="创作助理与检查器">
+        <nav class="right-tabs" aria-label="右侧面板">
+          <button class="right-tab active" type="button" data-tab="assistant" aria-selected="true">AI 助手</button>
+          <button class="right-tab" type="button" data-tab="inspector" aria-selected="false">检查器</button>
+          <button class="right-tab" type="button" data-tab="tasks" aria-selected="false">任务</button>
+        </nav>
+
+        <div class="tab-panel active" id="assistantPanel" data-panel="assistant">
+          <div class="assistant-head">
+            <div class="assistant-avatar">M3</div>
+            <div><strong id="assistantModel">MiniMax-M3</strong><span>带项目证据的叙事协作</span></div>
+          </div>
+          <div class="chat-stream" id="chatStream" aria-live="polite">
+            <article class="message assistant-message">
+              <p>我会先检索正典、时间线和人物 K 线，再回答或续写。所有结论都可以回到来源。</p>
+            </article>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-tools">
+              <select id="chatMode" aria-label="模型工作模式">
+                <option value="analysis">分析</option>
+                <option value="consistency">一致性检查</option>
+                <option value="cold_start">冷启动框架搭建</option>
+                <option value="continue">续写</option>
+                <option value="rewrite">改写</option>
+              </select>
+              <span id="contextBadge">自动检索 8 条证据</span>
+              <button class="text-button" id="previewContext" type="button">预览模型上下文</button>
+            </div>
+            <p class="workflow-reminder">当前工序：确认上下文 → 运行模型 → 审阅候选 → 接受或拒绝</p>
+            <textarea id="chatInput" rows="4" placeholder="例如：当前人物在这个场景知道了什么？"></textarea>
+            <div class="prompt-footer">
+              <span id="chatStatus">本地知识库已就绪</span>
+              <button class="btn primary" id="sendChat" type="button">运行模型</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="inspectorPanel" data-panel="inspector">
+          <div class="empty-state" id="inspectorEmpty">
+            <div class="empty-icon">◇</div><strong>选择画布节点</strong><p>查看场景定位、人物关系和引用证据。</p>
+          </div>
+          <div id="nodeInspector" hidden>
+            <div class="inspector-heading"><span class="node-kind" id="selectedKind">场景</span><h2 id="selectedTitle"></h2><p id="selectedDescription"></p></div>
+            <dl class="detail-grid" id="selectedDetails"></dl>
+            <button class="btn secondary full" id="inspectEvidence" type="button">检索相关证据</button>
+          </div>
+          <section class="evidence-section">
+            <div class="section-heading"><span>证据</span><span id="evidenceCount">0 条</span></div>
+            <div id="evidenceList" class="evidence-list"></div>
+          </section>
+        </div>
+
+        <div class="tab-panel" id="tasksPanel" data-panel="tasks">
+          <div class="task-intro"><span class="eyebrow">OPENCLAW</span><h2>把画布变成文件</h2><p>任务先检索项目知识，写入前停在审批节点。</p></div>
+          <div class="office-grid">
+            <button class="office-action word" type="button" data-office="word"><b>W</b><span><strong>创作圣经</strong><small>生成 Word</small></span></button>
+            <button class="office-action powerpoint" type="button" data-office="powerpoint"><b>P</b><span><strong>提案演示</strong><small>生成 PowerPoint</small></span></button>
+            <button class="office-action excel" type="button" data-office="excel"><b>X</b><span><strong>人物 K 线</strong><small>生成 Excel</small></span></button>
+          </div>
+          <div class="approval-card" id="approvalCard" hidden>
+            <div class="approval-icon">!</div>
+            <div class="approval-copy"><strong>等待你的批准</strong><span id="approvalDescription"></span></div>
+            <div class="approval-actions">
+              <button class="btn secondary" id="rejectTask" type="button">拒绝</button>
+              <button class="btn primary" id="approveTask" type="button">批准写入</button>
+            </div>
+          </div>
+          <section class="recent-tasks">
+            <div class="section-heading"><span>本次会话</span><span id="taskCount">0 项</span></div>
+            <div id="taskList" class="task-list"></div>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <dialog id="sceneDialog">
+      <form method="dialog" id="sceneForm">
+        <div class="dialog-head"><div><span class="eyebrow">TIMELINE</span><h2>添加场景</h2></div><button class="icon-button" value="cancel" formnovalidate aria-label="关闭">×</button></div>
+        <label>场景标题<input id="sceneTitle" required placeholder="例如：偏殿偷听"></label>
+        <div class="two-fields"><label>集<input id="sceneEpisode" required type="number" min="1" value="18"></label><label>场<input id="sceneNumber" required type="number" min="1" value="1"></label></div>
+        <label>场景内容<textarea id="sceneDescription" required rows="4" placeholder="这个场景发生了什么？"></textarea></label>
+        <label>故事时间<input id="sceneStoryTime" placeholder="例如：景曜十三年冬夜"></label>
+        <p class="dialog-note">点击保存即表示批准本次写入。场景正文和来源会进入连续性账本。</p>
+        <div class="dialog-actions"><button class="btn secondary" value="cancel" formnovalidate>取消</button><button class="btn primary" id="submitScene" value="default">保存到画布</button></div>
+      </form>
+    </dialog>
+    <dialog id="modelDialog">
+      <form method="dialog" id="modelForm">
+        <div class="dialog-head"><div><span class="eyebrow">MODEL</span><h2>连接 MiniMax</h2></div><button class="icon-button" value="cancel" formnovalidate aria-label="关闭">×</button></div>
+        <p class="dialog-note">密钥只发送到本机 127.0.0.1，并以明文保存到当前数据库同目录的 <code>*.llm.json</code>；不会写入浏览器存储或在 API 响应中回显。</p>
+        <label>Base URL<input id="modelBaseUrl" required autocomplete="url" value="https://api.minimaxi.com/v1"></label>
+        <label>模型<input id="modelName" required autocomplete="off" value="MiniMax-M3"></label>
+        <label>API Key<input id="modelApiKey" required type="password" autocomplete="off" placeholder="粘贴后不会写入浏览器存储"></label>
+        <p class="dialog-error" id="modelConfigError" role="alert" hidden></p>
+        <div class="dialog-actions"><button class="btn secondary" value="cancel" formnovalidate>取消</button><button class="btn primary" id="saveModelConfig" value="default">明文保存并使用</button></div>
+      </form>
+    </dialog>
+    <dialog id="projectDialog">
+      <form method="dialog" id="projectForm">
+        <div class="dialog-head"><div><span class="eyebrow">PROJECT</span><h2>项目名称</h2></div><button class="icon-button" value="cancel" formnovalidate aria-label="关闭">×</button></div>
+        <label>名称<input id="projectName" required autocomplete="off"></label>
+        <div class="dialog-actions"><button class="btn secondary" value="cancel" formnovalidate>取消</button><button class="btn primary" value="default">保存名称</button></div>
+      </form>
+    </dialog>
+    <dialog id="newProjectDialog">
+      <form method="dialog" id="newProjectForm">
+        <div class="dialog-head"><div><span class="eyebrow">NEW PROJECT</span><h2>新建写作项目</h2></div><button class="icon-button" value="cancel" formnovalidate aria-label="关闭">×</button></div>
+        <p class="dialog-note">新项目拥有独立的正文、知识库、人物 K 线和连续性账本。创建后会自动切换到空画布。</p>
+        <label>项目名称<input id="newProjectName" required autocomplete="off" placeholder="例如：长安夜行录"></label>
+        <p class="dialog-error" id="newProjectError" role="alert" hidden></p>
+        <div class="dialog-actions"><button class="btn secondary" value="cancel" formnovalidate>取消</button><button class="btn primary" id="createProjectButton" value="default">创建并打开</button></div>
+      </form>
+    </dialog>
+    <dialog id="ohlcDialog">
+      <form method="dialog" id="ohlcForm">
+        <div class="dialog-head"><div><span class="eyebrow">CHARACTER OHLC</span><h2>添加人物 K 线周期</h2></div><button class="icon-button" value="cancel" formnovalidate aria-label="关闭">×</button></div>
+        <label>关联场景<select id="newOhlcScene" required aria-describedby="newOhlcSceneNote"></select></label>
+        <p class="dialog-note compact" id="newOhlcSceneNote">K 线会保存场景 ID；周期名称只用于显示与层级聚合。</p>
+        <div class="two-fields"><label>人物<input id="newOhlcCharacter" required value="沈霜"></label><label>维度<input id="newOhlcDimension" required value="知情度"></label></div>
+        <div class="two-fields"><label>周期<input id="newOhlcPeriod" required value="E18-S08"></label><label>父周期<input id="newOhlcParent" value="E18"></label></div>
+        <div class="two-fields"><label>周期类型<input id="newOhlcType" required value="scene"></label><label>排序值<input id="newOhlcSort" required type="number" step="0.01" value="18.08"></label></div>
+        <div class="ohlc-dialog-values">
+          <label>开<input id="newOhlcOpen" required type="number" min="0" max="100" value="76"></label>
+          <label>高<input id="newOhlcHigh" required type="number" min="0" max="100" value="88"></label>
+          <label>低<input id="newOhlcLow" required type="number" min="0" max="100" value="61"></label>
+          <label>收<input id="newOhlcClose" required type="number" min="0" max="100" value="79"></label>
+        </div>
+        <p class="dialog-note">点击保存即表示批准写入；父周期会按首开、最高、最低、末收自动聚合。</p>
+        <div class="dialog-actions"><button class="btn secondary" value="cancel" formnovalidate>取消</button><button class="btn primary" value="default">保存到画布</button></div>
+      </form>
+    </dialog>
+    <dialog id="entityDialog">
+      <form method="dialog" id="entityForm">
+        <div class="dialog-head"><div><span class="eyebrow">KNOWLEDGE GRAPH</span><h2>添加人物或事实</h2></div><button class="icon-button" value="cancel" formnovalidate aria-label="关闭">×</button></div>
+        <label>名称<input id="newEntityName" required autocomplete="off" placeholder="例如：沈霜"></label>
+        <label>类型<select id="newEntityType" required><option value="character">人物</option><option value="fact">事实</option><option value="place">地点</option><option value="object">物件</option><option value="organization">组织</option><option value="method">方法</option></select></label>
+        <label>别名<input id="newEntityAliases" autocomplete="off" placeholder="多个别名用逗号分隔"></label>
+        <label>说明<textarea id="newEntityDescription" rows="3" placeholder="人物性格、事实边界或其他约束"></textarea></label>
+        <p class="dialog-note">点击保存即表示批准写入知识图谱，并记录到连续性账本。</p>
+        <div class="dialog-actions"><button class="btn secondary" value="cancel" formnovalidate>取消</button><button class="btn primary" id="saveEntityButton" value="default">保存到项目</button></div>
+      </form>
+    </dialog>
+    <dialog id="sourceDialog">
+      <form method="dialog" id="sourceForm">
+        <div class="dialog-head"><div><span class="eyebrow">KNOWLEDGE SOURCE</span><h2>创建文本来源</h2></div><button class="icon-button" value="cancel" formnovalidate aria-label="关闭">×</button></div>
+        <label>来源标题<input id="newSourceTitle" required autocomplete="off" placeholder="例如：沈霜人物设定"></label>
+        <label>正文<textarea id="newSourceText" required rows="9" placeholder="粘贴人物设定、世界观、采访笔记或正典资料……"></textarea></label>
+        <label>正典状态<select id="newSourceCanon"><option value="reference">参考资料</option><option value="canon">正典</option><option value="draft">草稿</option></select></label>
+        <p class="dialog-note">保存后会被切分、索引并成为画布来源节点；AI 可以检索和引用它。</p>
+        <p class="dialog-error" id="newSourceError" role="alert" hidden></p>
+        <div class="dialog-actions"><button class="btn secondary" id="sourceUploadInstead" type="button">改为上传文件</button><button class="btn secondary" value="cancel" formnovalidate>取消</button><button class="btn primary" id="saveSourceButton" value="default">保存来源</button></div>
+      </form>
+    </dialog>
+    <dialog id="contextDialog">
+      <form method="dialog">
+        <div class="dialog-head">
+          <div><span class="eyebrow">CONTEXT</span><h2>模型上下文预览</h2></div>
+          <button class="icon-button" value="cancel" aria-label="关闭">×</button>
+        </div>
+        <p class="dialog-note">工序提醒：先确认当前场景、人物与 K 线维度，再运行模型。AI 只生成建议，不会自动覆盖正式稿。</p>
+        <dl id="contextScopeSummary" class="context-scope-summary"></dl>
+        <div id="contextTimelineSummary" class="context-preview-section"></div>
+        <div id="contextKlineSummary" class="context-preview-section"></div>
+        <div id="contextEvidenceSummary" class="context-preview-section"></div>
+        <div id="contextWarnings" class="context-warning" hidden></div>
+        <div class="dialog-actions">
+          <button class="btn secondary" value="cancel">返回调整</button>
+          <button class="btn primary" id="runChatFromPreview" type="button">确认并运行模型</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="blueprintLabDialog" aria-labelledby="blueprintLabTitle">
+      <div class="blueprint-lab-shell">
+        <header class="blueprint-lab-head">
+          <div><span class="eyebrow">BLUEPRINT LAB</span><h2 id="blueprintLabTitle">参考机制逆向与新作品生产</h2><p>原文只进入抽取与安全检查；草稿代理只读取确认后的抽象机制和新设定。</p></div>
+          <button class="icon-button" id="closeBlueprintLab" type="button" aria-label="关闭">×</button>
+        </header>
+        <div class="blueprint-steps" aria-label="蓝图生产步骤">
+          <section class="blueprint-step" data-blueprint-step="reference">
+            <header><b>1</b><div><strong>提交参考文本</strong><span>短文本即时处理，长篇后台分批</span></div></header>
+            <div class="blueprint-fields two">
+              <label>标题<input id="referenceTitleInput" autocomplete="off" placeholder="参考作品标题"></label>
+              <label>权利基础<select id="referenceRightsBasis"><option value="owned">自有</option><option value="licensed">已获许可</option><option value="public_domain">公版</option><option value="research_reference">研究参考</option></select></label>
+            </div>
+            <label>参考正文<textarea id="referenceTextInput" rows="8" placeholder="粘贴短篇或完整长篇。文本不会写入浏览器存储。"></textarea></label>
+            <div class="blueprint-action-row"><label class="inline-check"><input id="forceBackgroundBlueprint" type="checkbox"> 强制后台处理</label><button class="btn secondary" id="createManualReferenceBlueprint" type="button">无模型手工蓝图</button><button class="btn primary" id="startReferenceBlueprint" type="button">抽取完整机制蓝图</button></div>
+          </section>
+          <section class="blueprint-step" data-blueprint-step="progress">
+            <header><b>2</b><div><strong>任务进度</strong><span>确定性 DAG、批次检查点与人工控制</span></div></header>
+            <div class="blueprint-progress" id="blueprintJobProgress" role="status"><i style="width:0%"></i><span>尚未启动</span></div>
+            <div class="blueprint-action-row"><button class="btn secondary" id="pauseBlueprintJob" type="button" disabled>暂停</button><button class="btn secondary" id="resumeBlueprintJob" type="button" disabled>恢复</button><button class="btn secondary danger" id="cancelBlueprintJob" type="button" disabled>取消</button></div>
+          </section>
+          <section class="blueprint-step" data-blueprint-step="review">
+            <header><b>3</b><div><strong>审阅参考机制蓝图</strong><span>全维度三态、证据、置信度与冲突</span></div></header>
+            <div class="blueprint-review-grid"><div><h3>层级节点（标题与摘要可编辑）</h3><div id="referenceBlueprintTree" class="blueprint-tree empty">等待抽取结果</div></div><div><h3>解释与冲突裁决</h3><div id="blueprintConflictQueue" class="blueprint-conflicts empty">暂无冲突</div></div></div>
+            <div class="blueprint-action-row"><button class="btn secondary" id="saveReferenceBlueprint" type="button" disabled>保存蓝图新版本</button></div>
+          </section>
+          <section class="blueprint-step" data-blueprint-step="target">
+            <header><b>4</b><div><strong>迁移到新作品</strong><span>自然语言设定 → 结构化设定 → 生产蓝图</span></div></header>
+            <label>新作品设定<textarea id="targetSettingInput" rows="6" placeholder="描述新人物、新世界、新冲突、代价、主题和结局方向。"></textarea></label>
+            <div class="blueprint-action-row"><button class="btn primary" id="createTargetBlueprint" type="button" disabled>整理结构化设定</button></div>
+            <div id="targetSettingFields" class="target-setting-fields empty">等待结构化设定</div>
+            <div class="blueprint-action-row"><button class="btn secondary" id="confirmTargetSetting" type="button" disabled>确认结构化设定</button><button class="btn primary" id="migrateTargetBlueprint" type="button" disabled>生成新作品生产蓝图</button><button class="btn secondary" id="createManualTargetBlueprint" type="button" disabled>无模型手工目标蓝图</button></div>
+            <div id="targetBlueprintTree" class="blueprint-tree empty">等待迁移结果</div>
+            <div class="blueprint-action-row"><button class="btn primary" id="confirmTargetBlueprint" type="button" disabled>确认当前目标蓝图</button></div>
+          </section>
+          <section class="blueprint-step" data-blueprint-step="draft">
+            <header><b>5</b><div><strong>按生产单元生成草稿</strong><span>上下文防火墙 → 连续性 → 分层相似度门禁</span></div></header>
+            <div class="blueprint-fields two"><label>生产单元<select id="blueprintUnitSelect"></select></label><label>正式稿 artifact<select id="blueprintArtifactSelect"></select></label></div>
+            <div class="blueprint-action-row"><button class="btn primary" id="generateUnitDraft" type="button" disabled>生成单元草稿候选</button></div>
+            <label>候选草稿<textarea id="draftCandidateText" rows="8" readonly placeholder="候选生成后显示在这里；接受前不会修改正式稿。"></textarea></label>
+            <div id="similarityReport" class="similarity-report empty">尚无相似度报告</div>
+            <div class="blueprint-action-row"><button class="btn secondary danger" id="rejectDraftCandidate" type="button" disabled>拒绝候选</button><button class="btn primary" id="acceptDraftCandidate" type="button" disabled>接受并创建正式版本</button></div>
+          </section>
+        </div>
+      </div>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script src="/assets/context-state.js"></script>
+  <script src="/assets/blueprint-state.js"></script>
+  <script src="/assets/cold-start-state.js"></script>
+  <script src="/assets/app.js"></script>
+</body>
+</html>

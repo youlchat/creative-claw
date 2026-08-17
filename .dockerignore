@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.creative-claw
+data
+demo-output
+**/__pycache__
+**/*.py[cod]
+*.db
+*.db-shm
+*.db-wal
+.env
+tests
